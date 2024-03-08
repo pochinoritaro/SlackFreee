@@ -63,7 +63,10 @@ def test_form(ack: Ack, body: dict, client: WebClient, say):
             print(f"エラーが発生しました: {e}")
 
     else:
-        say("ユーザー権限がありません")
+        client.views_open(
+            trigger_id=body["trigger_id"],
+            view=error_dialog(message="ユーザー権限がありません。"),
+        )
 
 # 有給申請
 @bolt_app.command("/form")
@@ -91,7 +94,8 @@ def paid_holiday_request_callback(ack: Ack, body, view: dict, client: WebClient)
     client.chat_postMessage(
             channel="有給登録",
             text=f"{user_name}さんから有給の申請が届きました。",
-            attachments=paid_holiday_approval_form(date=date, reason=reason, user_id=user_id, user_email=user_email),
+            blocks=paid_holiday_approval_form(user_name=user_name, date=date, reason=reason, user_id=user_id, user_email=user_email)
+            #attachments=paid_holiday_approval_form(date=date, reason=reason, user_id=user_id, user_email=user_email),
             )
 
 
@@ -156,15 +160,15 @@ def paid_holiday_approval_callback(ack: Ack, body, view: dict, client: WebClient
     approval_user_text = body["message"]["text"]
     channel_id = body["container"]["channel_id"]
     ts = body["container"]["message_ts"]
-    paid_holiday_info = body["message"]["attachments"][0]["fallback"]
-    attachments = body["message"]["attachments"]
+    paid_holiday_info = loads(body["actions"][0]["value"])
+    blocks = body["message"]["blocks"]
     ack()
     client.views_open(
         trigger_id=body["trigger_id"],
         view=paid_holiday_rejection_form(
             dict(
                 approval_user_text=approval_user_text,
-                attachments=attachments,
+                blocks=blocks,
                 ts=ts,
                 channel_id=channel_id,
                 paid_holiday_info=paid_holiday_info
@@ -180,63 +184,52 @@ def paid_holiday_rejection_callback(ack: Ack, body, view: dict, client: WebClien
     #TODO jsonモジュールをblockライブラリに移行
     paid_holiday_info = loads(body["view"]["private_metadata"])
     channel_id = paid_holiday_info["channel_id"]
-    attachments = paid_holiday_info["attachments"]
-    ack()
-    conversation =  client.conversations_open(users=paid_holiday_info["paid_holiday_info"]["user_id"])
-    dm_channel_id = conversation["channel"]["id"]
-    # ユーザに却下のDMを送信
-    client.chat_postMessage(
-        channel=dm_channel_id,
-        text="申請が却下されました。",
-        attachments=dumps(
-            [
-                {
-                    "blocks": [
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "plain_text",
-                                "text": f"・日時: {paid_holiday_info["paid_holiday_info"]["date"]}\n・理由: {paid_holiday_info["paid_holiday_info"]["reason"]}"
-                            }
-                        },
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "plain_text",
-                                "text": f"・却下理由: {reason}"
-                            }
-                        }
-                    ]
-                }
-            ]
-        )
-    )
-
-    user_name = client.users_info(user=body["user"]["id"])["user"]["profile"]["real_name"]
-    attachments[0]["blocks"][1] = dict(
+    blocks = paid_holiday_info["blocks"]
+    blocks[3] = dict(
         type="section",
         text=dict(
             type="plain_text",
-            text=f"{user_name}さんが却下しました。"
+            text=f"・却下理由: {reason}"
         )
     )
-
-    attachments[0]["blocks"].append(
+    request_user_dict = blocks.pop(1)
+    blocks.insert(
+        1,
         dict(
             type="section",
             text=dict(
                 type="plain_text",
-                text=f"・却下理由: {reason}",
-                emoji=True
+                text="申請が却下されました。"
             )
         )
     )
-
+    ack()
+    # ユーザに却下のDMを送信
+    conversation =  client.conversations_open(users=paid_holiday_info["paid_holiday_info"]["user_id"])
+    dm_channel_id = conversation["channel"]["id"]
+    client.chat_postMessage(
+        channel=dm_channel_id,
+        text="test",
+        blocks=blocks
+    )
+    # 有給登録のメッセージを編集する
+    user_name = client.users_info(user=body["user"]["id"])["user"]["profile"]["real_name"]
+    blocks[1] = request_user_dict
+    blocks.insert(
+        3,
+        dict(
+            type="section",
+            text=dict(
+                type="plain_text",
+                text=f"{user_name}さんが却下しました。"
+            )
+        )
+    )
     client.chat_update(
         #TODO bodyからチャンネルIDを取得したい
         channel=channel_id,
-        text=paid_holiday_info["approval_user_text"],
-        attachments=dumps(attachments),
+        text="test",
+        blocks=blocks,
         ts=paid_holiday_info["ts"]
     )
 
@@ -274,4 +267,4 @@ async def slack_events_endpoint(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app="test:fast_api", host="0.0.0.0", port=3040, reload=True)
+    uvicorn.run(app="app:fast_api", host="0.0.0.0", port=3040, reload=True)
