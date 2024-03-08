@@ -5,7 +5,6 @@ def paid(date: str, reason: str, email: str, hr: HumanResourse):
     now = datetime.now()
     employees = hr.get_employees(year=now.year, month=now.month)["employees"]
     employee_id = get_employee_id(employees=employees, email=email)
-    print(employee_id)
     work_record = hr.update_employee_work_record(
         employee_id=employee_id,
         date=date,
