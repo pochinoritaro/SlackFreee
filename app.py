@@ -106,14 +106,12 @@ def paid_holiday_approval_callback(ack: Ack, body, view: dict, client: WebClient
     channel_id = body["container"]["channel_id"]
     user_id = body["user"]["id"]
     user_name = client.users_info(user=user_id)["user"]["profile"]["real_name"]
-    attachments = body["message"]["attachments"]
-    print(attachments)
+    blocks = body["message"]["blocks"]
     
     #TODO ブロックの説明欄にEメールのアドレスをぶち込んでる。(後日調べなおす)
-    paid_holiday_info = attachments[0]["fallback"]
-    print(paid_holiday_info["user_email"])
+    paid_holiday_info = loads(body["actions"][0]["value"])
     try:
-        approval = paid(
+        paid(
             date=paid_holiday_info["date"],
             reason=paid_holiday_info["reason"],
             email=paid_holiday_info["user_email"],
@@ -134,23 +132,36 @@ def paid_holiday_approval_callback(ack: Ack, body, view: dict, client: WebClient
     
     else:
         ts = body["container"]["message_ts"]
-        attachments[0]["blocks"][1] = {"type": "section", "text": {"type": "plain_text", "text": f"{user_name}さんが承認しました。"}}
+        blocks[3] = dict(
+            type="section",
+            text=dict(
+                type="plain_text",
+                text=f"{user_name}さんが承認しました。"
+            )
+        )
+
+        
         client.chat_update(
             channel=channel_id,
-            text=body["message"]["text"],
-            attachments=attachments,
+            text="text",
+            blocks=blocks,
             ts=ts
         )
         
+        blocks[1] = dict(
+            type="section",
+            text=dict(
+                type="plain_text",
+                text=f"有給が承認されました。"
+            )
+        )
+        del blocks[3]
         conversation =  client.conversations_open(users=paid_holiday_info["user_id"])
         dm_channel_id = conversation["channel"]["id"]
         client.chat_postMessage(
             channel=dm_channel_id,
             text="有給が承認されました。",
-            attachments=paid_holiday_approval_resule(
-                date=paid_holiday_info["date"],
-                reason=paid_holiday_info["reason"],
-            )
+            blocks=blocks
         )
 
 
