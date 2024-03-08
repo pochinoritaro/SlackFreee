@@ -60,48 +60,56 @@ def paid_holiday_request_form():
     )
 
 
-def paid_holiday_approval_form(date: str, reason: str, user_id: str, user_email: str):
-    return dumps(
-        [
-            {
-                "fallback": dict(date=date, reason=reason, user_id=user_id, user_email=user_email),
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "plain_text",
-                            "text": f"・日時: {date}\n・理由: {reason}"
-                        }
-                    },
-                    {
-                        "type": "actions",
-                        "elements": [
-                            {
-                                "type": "button",
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "承認",
-                                    "emoji": True
-                                },
-                                "value": "approval",
-                                "action_id": "paid_holiday_request_approval"
-                            },
-                            {
-                                "type": "button",
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "差し戻し",
-                                    "emoji": True
-                                },
-                                "value": "rejection",
-                                "action_id": "paid_holiday_request_rejection"
-                            }
-                        ]
-                    }
-                ]
+def paid_holiday_approval_form(user_name: str, date: str, reason: str, user_id: str, user_email: str):
+    return [
+        {
+            "type": "divider"
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "plain_text",
+                "text": f"{user_name}さんから有給の申請が届きました。"
             }
-        ]
-    )
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "plain_text",
+                "text": f"・日時: {date}\n・理由: {reason}"
+            }
+        },
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "承認",
+                        "emoji": True
+                    },
+                    "style": "primary",
+                    "value": dumps(dict(date=date, reason=reason, user_id=user_id, user_email=user_email)),
+                    "action_id": "paid_holiday_request_approval"
+                },
+                {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "差し戻し",
+                        "emoji": True
+                    },
+                    "style": "danger",
+                    "value": dumps(dict(date=date, reason=reason, user_id=user_id)),
+                    "action_id": "paid_holiday_request_rejection"
+                }
+            ]
+        },
+        {
+            "type": "divider"
+        }
+    ]
 
 
 def paid_holiday_rejection_form(private_metadata: dict):
@@ -154,18 +162,17 @@ def paid_holiday_rejection_form(private_metadata: dict):
 
 def paid_holiday_approval_resule(date: str, reason: str):
     return dumps(
-                    [
+            [
+                {
+                    "blocks": [
                         {
-                            "blocks": [
-                                {
-                                    "type": "section",
-                                    "text": {
-                                        "type": "plain_text",
-                                        "text": f"・日時: {date}\n・理由: {reason}"
-                                    }
-                                }
-                            ]
+                            "type": "section",
+                            "text": {
+                                "type": "plain_text",
+                                "text": f"・日時: {date}\n・理由: {reason}"
+                            }
                         }
                     ]
-                )
-            
+                }
+            ]
+        )
