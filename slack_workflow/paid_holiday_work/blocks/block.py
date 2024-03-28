@@ -1,7 +1,7 @@
 from datetime import datetime
 from json import dumps
 
-def paid_holiday_request_form():
+def paid_holiday_request_modal():
     return dumps(
         {
             "type": "modal",
@@ -60,7 +60,7 @@ def paid_holiday_request_form():
     )
 
 
-def paid_holiday_approval_form(user_name: str, date: str, reason: str, user_id: str, user_email: str):
+def paid_holiday_approval_form(user_name: str, request_date: str, request_reason: str, user_id: str, user_email: str):
     return [
         {
             "type": "divider"
@@ -76,7 +76,7 @@ def paid_holiday_approval_form(user_name: str, date: str, reason: str, user_id: 
             "type": "section",
             "text": {
                 "type": "plain_text",
-                "text": f"・日時: {date}\n・理由: {reason}"
+                "text": f"・日時: {request_date}\n・理由: {request_reason}"
             }
         },
         {
@@ -90,7 +90,14 @@ def paid_holiday_approval_form(user_name: str, date: str, reason: str, user_id: 
                         "emoji": True
                     },
                     "style": "primary",
-                    "value": dumps(dict(date=date, reason=reason, user_id=user_id, user_email=user_email)),
+                    "value": dumps(
+                        dict(
+                            date=request_date,
+                            reason=request_reason,
+                            user_id=user_id,
+                            user_email=user_email
+                            )
+                        ),
                     "action_id": "paid_holiday_request_approval"
                 },
                 {
@@ -101,7 +108,13 @@ def paid_holiday_approval_form(user_name: str, date: str, reason: str, user_id: 
                         "emoji": True
                     },
                     "style": "danger",
-                    "value": dumps(dict(date=date, reason=reason, user_id=user_id)),
+                    "value": dumps(
+                        dict(
+                            date=request_date,
+                            reason=request_reason,
+                            user_id=user_id
+                            )
+                        ),
                     "action_id": "paid_holiday_request_rejection"
                 }
             ]
@@ -112,7 +125,7 @@ def paid_holiday_approval_form(user_name: str, date: str, reason: str, user_id: 
     ]
 
 
-def paid_holiday_rejection_form(private_metadata: dict):
+def paid_holiday_rejection_modal(private_metadata: dict):
     return dumps(
         {
             "callback_id": "paid_holiday_rejection",
